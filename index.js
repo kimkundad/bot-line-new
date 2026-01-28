@@ -91,24 +91,28 @@ app.get('/', (req, res) => {
 app.get('/send-message', async (req, res) => {
   const message = req.query.msg;
   const imageUrl = req.query.image;
-  const to = req.query.to || 'group';
-  const userId = req.query.user_id;
-  const groupId = req.query.group_id;
+  const userId = req.query.user_id;   // Uxxxxxxxx
+  const groupId = req.query.group_id; // Cxxxxxxxx
 
-  if (!message) return res.status(400).send('Parameter "msg" is required.');
+  if (!message) {
+    return res.status(400).send('Parameter "msg" is required.');
+  }
+
+  if (!userId && !groupId) {
+    return res.status(400).send('Missing user_id or group_id');
+  }
 
   const messages = [{ type: 'text', text: message }];
   if (imageUrl) {
-    messages.push({ type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl });
+    messages.push({
+      type: 'image',
+      originalContentUrl: imageUrl,
+      previewImageUrl: imageUrl,
+    });
   }
 
   try {
-    const target = (to === 'user') ? userId : groupId;
-
-    if (!target) {
-      return res.status(400).send('Missing "user_id" or "group_id"');
-    }
-
+    const target = userId ?? groupId; // ส่งได้ตัวเดียวแน่นอน
     await client.pushMessage(target, messages);
     res.send('✅ Message sent');
   } catch (err) {
@@ -116,6 +120,7 @@ app.get('/send-message', async (req, res) => {
     res.status(500).send('❌ Error sending message');
   }
 });
+
 
 
 const port = process.env.PORT || 3001;
