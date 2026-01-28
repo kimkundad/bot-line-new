@@ -53,56 +53,23 @@ app.get('/', (req, res) => {
 
   
 // ทดสอบ pushMessage แบบ manual
-// app.get('/send-message', async (req, res) => {
-//   const message = req.query.msg;
-//   const imageUrl = req.query.image;
-//   const groupId = req.query.group_id;
-
-//   if (!message || !groupId) {
-//     return res.status(400).send('Parameters "msg" and "group_id" are required.');
-//   }
-
-//   // เตรียม array สำหรับ message
-//   const messages = [
-//     {
-//       type: 'text',
-//       text: message,
-//     },
-//   ];
-
-//   if (imageUrl) {
-//     messages.push({
-//       type: 'image',
-//       originalContentUrl: imageUrl,
-//       previewImageUrl: imageUrl,
-//     });
-//   }
-
-//   try {
-//     await client.pushMessage(groupId, messages);
-//     res.send('✅ Message sent' + (imageUrl ? ' with image!' : '!'));
-//   } catch (err) {
-//     console.error('❌ LINE Error:', err.originalError?.response?.data || err);
-//     res.status(500).send('❌ Error sending message');
-//   }
-// });
-
-
 app.get('/send-message', async (req, res) => {
   const message = req.query.msg;
   const imageUrl = req.query.image;
-  const userId = req.query.user_id;   // Uxxxxxxxx
-  const groupId = req.query.group_id; // Cxxxxxxxx
+  const groupId = req.query.group_id;
 
-  if (!message) {
-    return res.status(400).send('Parameter "msg" is required.');
+  if (!message || !groupId) {
+    return res.status(400).send('Parameters "msg" and "group_id" are required.');
   }
 
-  if (!userId && !groupId) {
-    return res.status(400).send('Missing user_id or group_id');
-  }
+  // เตรียม array สำหรับ message
+  const messages = [
+    {
+      type: 'text',
+      text: message,
+    },
+  ];
 
-  const messages = [{ type: 'text', text: message }];
   if (imageUrl) {
     messages.push({
       type: 'image',
@@ -112,15 +79,13 @@ app.get('/send-message', async (req, res) => {
   }
 
   try {
-    const target = userId ?? groupId; // ส่งได้ตัวเดียวแน่นอน
-    await client.pushMessage(target, messages);
-    res.send('✅ Message sent');
+    await client.pushMessage(groupId, messages);
+    res.send('✅ Message sent' + (imageUrl ? ' with image!' : '!'));
   } catch (err) {
     console.error('❌ LINE Error:', err.originalError?.response?.data || err);
     res.status(500).send('❌ Error sending message');
   }
 });
-
 
 
 const port = process.env.PORT || 3001;
