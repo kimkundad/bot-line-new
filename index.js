@@ -53,34 +53,64 @@ app.get('/', (req, res) => {
 
   
 // ทดสอบ pushMessage แบบ manual
+// app.get('/send-message', async (req, res) => {
+//   const message = req.query.msg;
+//   const imageUrl = req.query.image;
+//   const groupId = req.query.group_id;
+
+//   if (!message || !groupId) {
+//     return res.status(400).send('Parameters "msg" and "group_id" are required.');
+//   }
+
+//   // เตรียม array สำหรับ message
+//   const messages = [
+//     {
+//       type: 'text',
+//       text: message,
+//     },
+//   ];
+
+//   if (imageUrl) {
+//     messages.push({
+//       type: 'image',
+//       originalContentUrl: imageUrl,
+//       previewImageUrl: imageUrl,
+//     });
+//   }
+
+//   try {
+//     await client.pushMessage(groupId, messages);
+//     res.send('✅ Message sent' + (imageUrl ? ' with image!' : '!'));
+//   } catch (err) {
+//     console.error('❌ LINE Error:', err.originalError?.response?.data || err);
+//     res.status(500).send('❌ Error sending message');
+//   }
+// });
+
+
 app.get('/send-message', async (req, res) => {
   const message = req.query.msg;
   const imageUrl = req.query.image;
+  const to = req.query.to || 'group';
+  const userId = req.query.user_id;
   const groupId = req.query.group_id;
 
-  if (!message || !groupId) {
-    return res.status(400).send('Parameters "msg" and "group_id" are required.');
-  }
+  if (!message) return res.status(400).send('Parameter "msg" is required.');
 
-  // เตรียม array สำหรับ message
-  const messages = [
-    {
-      type: 'text',
-      text: message,
-    },
-  ];
-
+  const messages = [{ type: 'text', text: message }];
   if (imageUrl) {
-    messages.push({
-      type: 'image',
-      originalContentUrl: imageUrl,
-      previewImageUrl: imageUrl,
-    });
+    messages.push({ type: 'image', originalContentUrl: imageUrl, previewImageUrl: imageUrl });
   }
 
   try {
-    await client.pushMessage(groupId, messages);
-    res.send('✅ Message sent' + (imageUrl ? ' with image!' : '!'));
+    const target = (to === 'user') ? userId : groupId;
+
+    if (!target) {
+      return res.status(400).send('Missing "user_id" or "group_id"');
+    }
+
+    await client.pushMessage(target, messages);
+    res.send('✅ Message sent');
   } catch (err) {
     console.error('❌ LINE Error:', err.originalError?.response?.data || err);
     res.status(500).send('❌ Error sending message');
