@@ -17,9 +17,21 @@ const app = express();
 
 // ถ้าใช้ Webhook ด้วย
 app.get('/', (req, res) => {
-    console.log(req.body); // ดูข้อมูลที่ถูกส่งมา
     res.send('OK');
   });
+
+function normalizeTargetId(value, allowedPrefixes) {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const lower = trimmed.toLowerCase();
+  if (lower === 'undefined' || lower === 'null') return null;
+  if (!allowedPrefixes.some((prefix) => trimmed.startsWith(prefix))) return null;
+
+  return trimmed;
+}
 
   app.post('/webhook', line.middleware(config), async (req, res) => {
     const events = req.body.events;
@@ -91,8 +103,8 @@ app.get('/', (req, res) => {
 app.get('/send-message', async (req, res) => {
   const message = req.query.msg;
   const imageUrl = req.query.image;
-  const userId = req.query.user_id;   // Uxxxxxxxx
-  const groupId = req.query.group_id; // Cxxxxxxxx
+  const userId = normalizeTargetId(req.query.user_id, ['U']); // Uxxxxxxxx
+  const groupId = normalizeTargetId(req.query.group_id, ['C', 'R']); // Cxxxxxxxx / Rxxxxxxxx
 
   if (!message) {
     return res.status(400).send('Parameter "msg" is required.');
@@ -112,11 +124,19 @@ app.get('/send-message', async (req, res) => {
   }
 
   try {
-    const target = userId ?? groupId; // ส่งได้ตัวเดียวแน่นอน
+    const target = userId || groupId;
     await client.pushMessage(target, messages);
     res.send('✅ Message sent');
   } catch (err) {
-    console.error('❌ LINE Error:', err.originalError?.response?.data || err);
+    const lineErr = err.originalError?.response?.data || err;
+    const lineMessage = lineErr?.message || '';
+
+    console.error('❌ LINE Error:', lineErr);
+
+    if (typeof lineMessage === 'string' && lineMessage.includes('monthly limit')) {
+      return res.status(429).send('LINE monthly limit reached');
+    }
+
     res.status(500).send('❌ Error sending message');
   }
 });
