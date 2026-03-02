@@ -17,7 +17,7 @@ const app = express();
 
 // ถ้าใช้ Webhook ด้วย
 app.get('/', (req, res) => {
-    res.send('OK');
+    res.send('OK >.<');
   });
 
 function normalizeTargetId(value, allowedPrefixes) {
